@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>თაკოს და ონისეს საქორწილო თამაში</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            background-color: #a0c4ff;
+        }
+
+        #game-area {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background-image: url('https://i.postimg.cc/02X0r551/bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* ბევრად გაზრდილი პატარძალი */
+        #player {
+            width: 280px;
+            height: 380px;
+            position: absolute;
+            bottom: 0px;
+            left: calc(50% - 140px);
+            background-image: url('https://i.postimg.cc/mkDFGMH2/bride.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center bottom;
+            z-index: 10;
+            filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.3));
+        }
+
+        .item {
+            width: 85px;
+            height: 85px;
+            position: absolute;
+            z-index: 5;
+        }
+
+        .obstacle {
+            background-image: url('https://i.postimg.cc/YSKgmhJZ/rain.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.2));
+        }
+
+        .collectable {
+            font-size: 60px;
+            text-align: center;
+            line-height: 85px;
+            filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.25));
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #880e4f;
+            font-size: 22px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 12px 25px;
+            border-radius: 30px;
+            z-index: 20;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        #game-over-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            text-align: center;
+            padding: 20px;
+        }
+
+        button {
+            padding: 14px 36px;
+            font-size: 20px;
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 22px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 64, 129, 0.4);
+            transition: transform 0.1s ease;
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-area">
+        <div id="ui">✨ ქულა: <span id="score">0</span></div>
+        <div id="player"></div>
+
+        <div id="game-over-screen">
+            <h1 style="color: #ff4081; margin-bottom: 10px; font-size: 36px;">თამაში დასრულდა!</h1>
+            <p style="font-size: 24px; margin: 10px 0;">შენ შეაგროვე <span id="final-score" style="color: #ff80ab; font-weight: bold;">0</span> სიყვარული & საჩუქარი 🎁</p>
+            <p style="color: #f8bbd0; font-size: 20px; max-width: 500px; line-height: 1.5;">
+                წვიმამ ვერაფერი დააკლო ამ სიყვარულს! <br>
+                <strong>თაკო & ონისე 🥂💖</strong>
+            </p>
+            <button onclick="startGame()">თავიდან დაწყება 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const gameArea = document.getElementById('game-area');
+        const player = document.getElementById('player');
+        const scoreEl = document.getElementById('score');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreEl = document.getElementById('final-score');
+
+        let score = 0;
+        let isGameOver = false;
+        let fallingSpeed = 4.5;
+        let spawnIntervalTime = 900;
+        let itemInterval = null;
+        let activeAnimationFrameIds = [];
+        const playerWidth = 280;
+
+        const collectablesList = ['💖', '🎁', '💐', '💍', '✨'];
+
+        function movePlayer(clientX) {
+            if (isGameOver) return;
+            let newX = clientX - gameArea.offsetLeft - (playerWidth / 2);
+            if (newX < 0) newX = 0;
+            if (newX > gameArea.offsetWidth - playerWidth) newX = gameArea.offsetWidth - playerWidth;
+            player.style.left = newX + 'px';
+        }
+
+        gameArea.addEventListener('mousemove', (e) => movePlayer(e.clientX));
+        gameArea.addEventListener('touchmove', (e) => {
+            movePlayer(e.touches[0].clientX);
+            e.preventDefault();
+        }, { passive: false });
+
+        function createItem() {
+            if (isGameOver) return;
+
+            const item = document.createElement('div');
+            item.classList.add('item');
+            
+            const isObstacle = Math.random() < 0.35;
+
+            if (isObstacle) {
+                item.classList.add('obstacle');
+                item.dataset.type = 'bad';
+            } else {
+                item.classList.add('collectable');
+                const randomIcon = collectablesList[Math.floor(Math.random() * collectablesList.length)];
+                item.innerText = randomIcon;
+                item.dataset.type = 'good';
+            }
+
+            item.style.left = Math.random() * (gameArea.offsetWidth - 85) + 'px';
+            item.style.top = '-85px';
+            gameArea.appendChild(item);
+
+            let currentTop = -85;
+            let animId;
+
+            function fall() {
+                if (isGameOver) {
+                    item.remove();
+                    return;
+                }
+
+                currentTop += fallingSpeed;
+                item.style.top = currentTop + 'px';
+
+                if (checkCollision(player, item)) {
+                    if (item.dataset.type === 'good') {
+                        score++;
+                        scoreEl.innerText = score;
+                        item.remove();
+
+                        if (score % 5 === 0) {
+                            fallingSpeed += 0.8;
+                            if (spawnIntervalTime > 400) {
+                                spawnIntervalTime -= 50;
+                                resetInterval();
+                            }
+                        }
+                    } else {
+                        endGame();
+                    }
+                    return;
+                }
+
+                if (currentTop > gameArea.offsetHeight) {
+                    item.remove();
+                } else {
+                    animId = requestAnimationFrame(fall);
+                    activeAnimationFrameIds.push(animId);
+                }
+            }
+            animId = requestAnimationFrame(fall);
+            activeAnimationFrameIds.push(animId);
+        }
+
+        function checkCollision(p, i) {
+            const pR = p.getBoundingClientRect();
+            const iR = i.getBoundingClientRect();
+            return !(pR.top > iR.bottom || pR.right < iR.left || pR.bottom < iR.top || pR.left > iR.right);
+        }
+
+        function resetInterval() {
+            if (itemInterval) clearInterval(itemInterval);
+            itemInterval = setInterval(createItem, spawnIntervalTime);
+        }
+
+        function clearAllItems() {
+            if (itemInterval) {
+                clearInterval(itemInterval);
+                itemInterval = null;
+            }
+            activeAnimationFrameIds.forEach(id => cancelAnimationFrame(id));
+            activeAnimationFrameIds = [];
+            const items = document.querySelectorAll('.item');
+            items.forEach(item => item.remove());
+        }
+
+        function startGame() {
+            clearAllItems();
+            score = 0;
+            scoreEl.innerText = score;
+            fallingSpeed = 4.5;
+            spawnIntervalTime = 900;
+            isGameOver = false;
+            gameOverScreen.style.display = 'none';
+            resetInterval();
+        }
+
+        function endGame() {
+            isGameOver = true;
+            clearAllItems();
+            finalScoreEl.innerText = score;
+            gameOverScreen.style.display = 'flex';
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
