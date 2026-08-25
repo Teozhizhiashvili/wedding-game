@@ -19,20 +19,19 @@
             width: 100vw;
             height: 100vh;
             position: relative;
-            background-image: url('https://i.postimg.cc/02X0r551/bg.png');
+            background-image: url('https://i.postimg.cc/LXGn05VH/ARC.png');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
         }
 
-        /* ბევრად გაზრდილი პატარძალი */
         #player {
             width: 280px;
             height: 380px;
             position: absolute;
             bottom: 0px;
             left: calc(50% - 140px);
-            background-image: url('https://i.postimg.cc/mkDFGMH2/bride.png');
+            background-image: url('https://i.postimg.cc/fyvwsbhg/439dca83-4d0e-4428-997f-f060a9309d05.png');
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center bottom;
@@ -40,26 +39,29 @@
             filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.3));
         }
 
+        /* ნივთების ზომა ოდნავ შევამცირეთ (110px) */
         .item {
-            width: 85px;
-            height: 85px;
+            width: 110px;
+            height: 110px;
             position: absolute;
             z-index: 5;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        /* ყვავილი დარჩა დიდი, რომ კარგად გამოჩნდეს */
+        .flower-item {
+            transform: scale(1.7);
         }
 
         .obstacle {
             background-image: url('https://i.postimg.cc/YSKgmhJZ/rain.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.2));
+            filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.9)) drop-shadow(0px 4px 6px rgba(0,0,0,0.3));
         }
 
         .collectable {
-            font-size: 60px;
-            text-align: center;
-            line-height: 85px;
-            filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.25));
+            filter: drop-shadow(0px 0px 10px rgba(255, 255, 255, 0.95)) drop-shadow(0px 4px 6px rgba(0,0,0,0.3));
         }
 
         #ui {
@@ -67,10 +69,10 @@
             top: 20px;
             left: 20px;
             color: #880e4f;
-            font-size: 22px;
+            font-size: 24px;
             font-weight: bold;
-            background: rgba(255, 255, 255, 0.92);
-            padding: 12px 25px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 28px;
             border-radius: 30px;
             z-index: 20;
             box-shadow: 0 4px 15px rgba(0,0,0,0.15);
@@ -120,7 +122,7 @@
 
         <div id="game-over-screen">
             <h1 style="color: #ff4081; margin-bottom: 10px; font-size: 36px;">თამაში დასრულდა!</h1>
-            <p style="font-size: 24px; margin: 10px 0;">შენ შეაგროვე <span id="final-score" style="color: #ff80ab; font-weight: bold;">0</span> სიყვარული & საჩუქარი 🎁</p>
+            <p style="font-size: 24px; margin: 10px 0;">შენ შეაგროვე <span id="final-score" style="color: #ff80ab; font-weight: bold;">0</span> საჩუქარი 🎁</p>
             <p style="color: #f8bbd0; font-size: 20px; max-width: 500px; line-height: 1.5;">
                 წვიმამ ვერაფერი დააკლო ამ სიყვარულს! <br>
                 <strong>თაკო & ონისე 🥂💖</strong>
@@ -144,7 +146,11 @@
         let activeAnimationFrameIds = [];
         const playerWidth = 280;
 
-        const collectablesList = ['💖', '🎁', '💐', '💍', '✨'];
+        const collectableItems = [
+            { url: 'https://i.postimg.cc/1zV3LP79/watermarked-img-15475046352514163371.png', isFlower: false },
+            { url: 'https://i.postimg.cc/L43LyB1R/watermarked-img-16779269144410226015.png', isFlower: true },
+            { url: 'https://i.postimg.cc/G25wrsB1/watermarked-img-14381550114767270841.png', isFlower: false }
+        ];
 
         function movePlayer(clientX) {
             if (isGameOver) return;
@@ -173,16 +179,21 @@
                 item.dataset.type = 'bad';
             } else {
                 item.classList.add('collectable');
-                const randomIcon = collectablesList[Math.floor(Math.random() * collectablesList.length)];
-                item.innerText = randomIcon;
                 item.dataset.type = 'good';
+                
+                const randomItem = collectableItems[Math.floor(Math.random() * collectableItems.length)];
+                item.style.backgroundImage = `url('${randomItem.url}')`;
+                
+                if (randomItem.isFlower) {
+                    item.classList.add('flower-item');
+                }
             }
 
-            item.style.left = Math.random() * (gameArea.offsetWidth - 85) + 'px';
-            item.style.top = '-85px';
+            item.style.left = Math.random() * (gameArea.offsetWidth - 110) + 'px';
+            item.style.top = '-110px';
             gameArea.appendChild(item);
 
-            let currentTop = -85;
+            let currentTop = -110;
             let animId;
 
             function fall() {
